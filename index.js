@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -25,10 +25,84 @@ async function run() {
   try {
     const addTaskCollection = client.db("taskManager").collection("addTask");
 
-    // post method
+    //add task post method
     app.post("/addtasks", async (req, res) => {
       const task = req.body;
       const result = await addTaskCollection.insertOne(task);
+      res.send(result);
+    });
+
+    //add task get method
+    app.get("/gettasks/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const cursor = addTaskCollection.find(query);
+      const tasks = await cursor.toArray();
+      res.send(tasks);
+    });
+
+    //done task put method
+    app.put("/donetask/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const option = { upsert: true };
+      const updateDoc = {
+        $set: {
+          done: true,
+        },
+      };
+      const result = await addTaskCollection.updateOne(
+        filter,
+        updateDoc,
+        option
+      );
+      res.send(result);
+    });
+
+    //undone task put method
+    app.put("/undonetask/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const option = { upsert: true };
+      const updateDoc = {
+        $set: {
+          done: false,
+        },
+      };
+      const result = await addTaskCollection.updateOne(
+        filter,
+        updateDoc,
+        option
+      );
+      res.send(result);
+    });
+
+    //add task update method
+
+    app.put("/edittask/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          task: req.body,
+          img: req.body,
+        },
+      };
+      const result = await addTaskCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    //add task delete method
+    app.delete("/tasks/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await addTaskCollection.deleteOne(query);
       res.send(result);
     });
   } finally {
