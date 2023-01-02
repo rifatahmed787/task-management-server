@@ -84,10 +84,10 @@ async function run() {
 
       const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
+
       const updateDoc = {
         $set: {
-          task: req.body,
-          img: req.body,
+          task: req.body.task,
         },
       };
       const result = await addTaskCollection.updateOne(
