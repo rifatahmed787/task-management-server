@@ -2,11 +2,19 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const nodemailer = require("nodemailer");
+const cron = require("node-cron");
+const mailgun = require("mailgun-js");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.send("Task management is running!");
+});
+
+const mg = mailgun({
+  apiKey: process.env.MAILGUN_API_KEY,
+  domain: process.env.MAILGUN_DOMAIN,
 });
 
 //middleware
@@ -29,6 +37,8 @@ async function run() {
     app.post("/addtasks", async (req, res) => {
       const task = req.body;
       const result = await addTaskCollection.insertOne(task);
+      sendInitialEmail(task.email, task.task);
+      scheduleFollowUpEmails(task._id, task.email, task.task);
       res.send(result);
     });
 
@@ -117,6 +127,64 @@ async function run() {
   }
 }
 run().catch(console.error());
+
+//sendInitialEmail Response
+const sendInitialEmail = (email, taskTitle) => {
+  const data = {
+    from: "mdrifatahmed787@gmail.com",
+    to: email,
+    subject: "New Task Assigned",
+    text: `You have been assigned a new task: ${taskTitle}`,
+  };
+
+  mg.messages().send(data, (error, body) => {
+    if (error) {
+      console.error("Error sending initial email:", error);
+    } else {
+      console.log("Initial email sent successfully!");
+    }
+  });
+};
+
+//schedule for followup messages
+// const scheduleFollowUpEmails = (taskId, email, taskTitle) => {
+//   const initialDelay = 2 * 60 * 60 * 1000;
+//   setTimeout(() => {
+//     sendFollowUpEmail(email, taskTitle);
+//     cron.schedule("0 */2 * * *", () => {
+//       sendFollowUpEmail(email, taskTitle);
+//     });
+//   }, initialDelay);
+// };
+
+const scheduleFollowUpEmails = (taskId, email, taskTitle) => {
+  const initialDelay = 5 * 60 * 1000;
+
+  setTimeout(() => {
+    sendFollowUpEmail(email, taskTitle);
+    cron.schedule("*/5 * * * *", () => {
+      sendFollowUpEmail(email, taskTitle);
+    });
+  }, initialDelay);
+};
+
+//send followup email response
+const sendFollowUpEmail = (email, taskTitle) => {
+  const data = {
+    from: "sender@example.com",
+    to: email,
+    subject: "Follow-up Task Reminder",
+    text: `Reminder: Please complete the task - ${taskTitle}`,
+  };
+
+  mg.messages().send(data, (error, body) => {
+    if (error) {
+      console.error("Error sending follow-up email:", error);
+    } else {
+      console.log("Follow-up email sent successfully!");
+    }
+  });
+};
 
 app.listen(port, () => {
   console.log(`task management listening on port ${port}`);
