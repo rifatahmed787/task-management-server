@@ -146,17 +146,6 @@ const sendInitialEmail = (email, taskTitle) => {
   });
 };
 
-//schedule for followup messages
-// const scheduleFollowUpEmails = (taskId, email, taskTitle) => {
-//   const initialDelay = 2 * 60 * 60 * 1000;
-//   setTimeout(() => {
-//     sendFollowUpEmail(email, taskTitle);
-//     cron.schedule("0 */2 * * *", () => {
-//       sendFollowUpEmail(email, taskTitle);
-//     });
-//   }, initialDelay);
-// };
-
 const scheduleFollowUpEmails = (taskId, email, taskTitle) => {
   const initialDelay = 5 * 60 * 1000;
 
